@@ -1,0 +1,58 @@
+package cmd
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/gocolly/colly/v2"
+	"github.com/spf13/cobra"
+)
+
+type Show struct {
+	Name string
+	URL  string
+}
+
+func init() {
+	rootCmd.AddCommand(searchCommand)
+}
+
+var searchCommand = &cobra.Command{
+	Use:   "search",
+	Short: "Search command",
+	Long:  "Enter the name of series/movie to search",
+	Run: func(cmd *cobra.Command, args []string) {
+		c := colly.NewCollector()
+
+		shows := make(map[string]Show)
+
+		c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+			link := e.Attr("href")
+			title := e.Attr("title")
+
+			if !strings.HasPrefix(link, "/anime/") {
+				return
+			}
+
+			if !strings.Contains(strings.ToLower(title), "naruto") {
+				return
+			}
+
+			if len(shows) == 10 {
+				return
+			}
+
+			shows[title] = Show{
+				Name: title,
+				URL:  link,
+			}
+		})
+
+		c.Visit("https://www4.gogoanime.pro/search?keyword=naruto")
+
+		for name, _ := range shows {
+			fmt.Printf("%s\n", name)
+		}
+
+	},
+}
